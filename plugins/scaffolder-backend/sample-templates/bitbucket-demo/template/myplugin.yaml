@@ -1,0 +1,405 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: pdo-cicd-0.0.1
+  title: PDO CICD v0.0.1
+  description: PDO CICD framework
+spec:
+  owner: pdo-devops
+  type: service
+  # these are the steps which are rendered in the frontend with the form input
+  parameters:
+    - title: Fill in application(service) metadata
+      properties:
+        service:
+          type: object
+          title: Metadata
+          required:
+            - name
+            - team
+            - bitbucketProjectKey
+            - runtime
+            - endpoint
+            - buildTool
+          properties:
+            name:
+              title: Name
+              type: string
+              description: Service name.
+              pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+              minLength: 1
+              maxLength: 63
+              ui:autofocus: true
+            team:
+              title: Team Name
+              type: string
+              description: Service team name
+              pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+              minLength: 1
+              maxLength: 63
+              enum:
+                - testpoc
+                - avatars
+                - search
+                - recommendations
+                - email
+                - jedi
+                - champions
+                - seahawks
+                - daredevils
+              ui:autofocus: true
+              ui:help: Example avatars, jedi etc.
+            bitbucketProjectKey:
+              title: Bitbucket Project Key
+              type: string
+              pattern: '^[A-Za-z]+[0-9]*([-_][A-Za-z0-9]+)*$'
+              minLength: 1
+              maxLength: 63
+              enum:
+                - ec
+                - search
+                - ds
+                - email
+              description: Service source code bitbucket project key.
+              ui:autofocus: true
+              ui:help: Example ec, search etc.
+            runtime:
+              title: Runtime
+              type: string
+              minLength: 1
+              maxLength: 63
+              enum:
+                - java
+                - node
+                - python
+              description: Service runtime.
+              ui:autofocus: true
+            endpoint:
+              title: Endpoint
+              type: string
+              description: Service endpoint.
+              pattern: '^//*'
+              format: uri-reference
+              ui:autofocus: true
+              ui:help: Example /slideshow, /onboard etc.
+            enabledInternalEndpoint:
+              title: Enable internal endpoint
+              type: boolean
+              default: false
+              description: Set if Service has internal endpoint.
+              ui:autofocus: true
+            enableEndpointRewrite:
+              title: Enable endpoint rewrite
+              type: boolean
+              default: false
+              description: Set if Service endpoint need rewrite.
+              ui:autofocus: true
+            buildTool:
+              title: Build Tool
+              type: string
+              minLength: 1
+              maxLength: 63
+              description: Service build tool.
+              enum:
+                - npm
+                - gradle
+                - mvn
+                - pip
+              ui:autofocus: true
+    - title: Fill in application(service) standard labels
+      properties:
+        labels:
+          type: object
+          title: Gartner specific and k8s recommended labels
+          required:
+            - businessUnit
+            - systemRiskClass
+            - appComponent
+            - function
+            - appContacts
+            - createdBy
+          properties:
+            businessUnit:
+              title: Business Unit
+              type: string
+              description: Gartner business unit name.
+              default: pdo
+              enum:
+                - pdo
+                - at
+                - cbs
+                - ccoe
+                - cd
+                - da
+                - dm
+                - emt
+                - ga
+                - infinity
+                - itio
+                - ls
+                - rcd
+                - sa
+                - sat
+                - secops
+                - ssd
+                - svc
+                - tn
+                - tnuh
+              ui:autofocus: true
+            systemRiskClass:
+              title: System Risk Class
+              type: string
+              enum:
+                - '1'
+                - '2'
+                - '3'
+              enumNames:
+                - High (1)
+                - Medium (2)
+                - Low (3)
+              description: Service system risk class.
+              ui:autofocus: true
+              ui:help: Please review our System Risk Classification page(https://gartner.atlassian.net/wiki/display/CLOUDCOE/System+Risk+Classification) to determine system risk class.
+            appComponent:
+              title: Application Component
+              type: string
+              description: Application component.
+              pattern: '^([a-z]+[0-9]*)*[\-\_]?([a-z0-9]+[\-\_])*[a-z0-9]+$'
+              minLength: 1
+              maxLength: 63
+              ui:autofocus: true
+              ui:help: 'Breakdown of the functional parts ("components" or "sub-services") that make up an application. Grouping is based more on function than underlying technology. For example Alfresco components could be Share, Repository, Solr, and Transformation. GCOM components could be gproduct, gsearch, recengine, etc. If there are replicas of a given component ("blue/green", "side-a/side-b") these should be tagged as independent app components. Ex: "search_solr_a" and "search_solr_b". Underlying services that work together to make up a component should be tagged with the same app_component tag, for example, loadbalancers, ASGs, and DBs for gsearch would have the same app_component tag: gsearch.'
+            function:
+              title: Function
+              type: string
+              enum:
+                - api
+                - appserver
+                - automation
+                - batchserver
+                - cache
+                - cdn
+                - dbserver
+                - ecs-node
+                - eks-master
+                - eks-node
+                - loadbalancer
+                - proxy
+                - storage
+                - utility
+                - webserver
+              description: Service function.
+              ui:autofocus: true
+            appContacts:
+              title: App Contacts
+              type: string
+              description: Application team DL without @gartner.com.
+              pattern: '^[a-zA-Z0-9._]+[\s]*[a-zA-Z0-9._]*$'
+              minLength: 1
+              maxLength: 63
+              ui:autofocus: true
+              ui:help: Example dlpdodevops, dleksenegineer etc.
+            createdBy:
+              title: Created By
+              type: string
+              description: Who created the k8s infra for the application.
+              pattern: '^[a-zA-Z0-9_.-]+_(gartner|capterra|evanta).com$'
+              minLength: 12
+              maxLength: 63
+              ui:autofocus: true
+              ui:help: Example mohitkumar.sharma2_gartner.com, example_labgartner.com etc.
+    - title: Fill in k8s config
+      properties:
+        k8s:
+          type: object
+          title: Configuration
+          required:
+            - commonNamespaces
+            - authorizationProvider
+          properties:
+            commonNamespaces:
+              title: K8s Common Namespaces
+              description: K8s common namespaces where application will be deployed for all environments.
+              type: array
+              minLength: 1
+              ui:options:
+                addable: true
+                orderable: true
+                removable: false
+              items:
+                type: string
+                pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+                minLength: 1
+                maxLength: 63
+                enum:
+                  - gcom-v2
+                  - offline-v2
+                  - eng
+                  - pi-v2
+              uniqueItems: true
+              ui:widget: checkboxes
+              ui:autofocus: true
+            devSpecificNamespaces:
+              title: K8s Dev Specific Namespaces
+              description: K8s dev specific namespaces where application will be deployed.
+              type: array
+              minLength: 1
+              ui:options:
+                addable: true
+                orderable: true
+                removable: false
+              items:
+                type: string
+                pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+                minLength: 1
+                maxLength: 63
+                enum:
+                  - pdopoc
+              uniqueItems: true
+              ui:widget: checkboxes
+              ui:autofocus: true
+            qaSpecificNamespaces:
+              title: K8s QA Specific Namespaces
+              description: K8s qa specific namespaces where application will be deployed.
+              type: array
+              minLength: 1
+              ui:options:
+                addable: true
+                orderable: true
+                removable: false
+              items:
+                type: string
+                pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+                minLength: 1
+                maxLength: 63
+                enum:
+                  - gcomuat-v2
+                  - selenium-v2
+              uniqueItems: true
+              ui:widget: checkboxes
+              ui:autofocus: true
+            authorizationProvider:
+              title: Authorization Provider
+              type: string
+              enum:
+                - iam
+                - vault
+              description: K8s service account authorization provider.
+              ui:autofocus: true
+    - title: Fill in service health check endpoints
+      properties:
+        healthChecks:
+          type: object
+          title: Health Check Endpoints
+          required:
+            - liveness
+            - readiness
+          properties:
+            liveness:
+              title: Liveness Probe Path
+              type: string
+              enum:
+                - /liveness
+                - /keepalive.html
+                - /keepalive.jsp
+              description: Service liveness prob path.
+              ui:autofocus: true
+            readiness:
+              title: Readiness Probe Path
+              type: string
+              enum:
+                - /readiness
+                - /keepalive.html
+                - /keepalive.jsp
+              description: Service readiness probe path.
+              ui:autofocus: true
+    - title: Choose integrations to be enabled for the service
+      properties:
+        integrations:
+          type: object
+          title: Integrations
+          properties:
+            enableConfigServer:
+              title: Spring Cloud Config Server
+              type: boolean
+              default: false
+              description: Set if want to integrate config server with your service.
+              ui:autofocus: true
+
+  # here's the steps that are executed in series in the scaffolder backend
+  steps:
+    - id: fetch
+      name: Generate Content From Teamplate
+      action: fetch:template
+      input:
+        url: ./argocd-team-repo
+        copyWithoutTemplating:
+          - .gitignore
+          - .pre-commit-config.yaml
+        values:
+          service: ${{ parameters.service }}
+          labels: ${{ parameters.labels }}
+          workload:
+            gcom-v2: gcom
+            offline-v2: offline
+            gcomuat-v2: gcomuat
+            pi-v2: pi
+            pi-memory-v2: pi-memory
+            eng: eng
+          k8s: ${{ parameters.k8s }}
+          healthChecks: ${{ parameters.healthChecks }}
+          integration: ${{ parameters.integration }}
+          helmChart:
+            name: webapp
+            version: 5.5.0
+
+    # - id: fetch-docs
+    #   name: Fetch Docs
+    #   action: fetch:plain
+    #   input:
+    #     targetPath: ./community
+    #     url: https://github.com/backstage/community/tree/main/backstage-community-sessions
+
+    # - id: publish
+    #   name: Publish Repo
+    #   action: publish:bitbucketServer
+    #   input:
+    #     allowedHosts:
+    #       - git.gartner.com
+    #       - gitdev.gartner.com
+    #     description: ${{ parameters.service.team }} team repo that contains the argocd related components for this team.
+    #     repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=aw${{ parameters.labels.businessUnit }}
+    #     repoVisibility: private
+
+    - id: publish-changes
+      name: Push Changes To Repository
+      action: publish:bitbucketServer:push
+      input:
+        repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=argo${{ parameters.labels.businessUnit }}
+        targetBranch: backstage/update
+    - id: publish-pr
+      name: Create PR out of changes
+      action: publish:bitbucketServer:pullRequest
+      input:
+        title: Onboard application ${{ parameters.service.name }}
+        repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=argo${{ parameters.labels.businessUnit }}
+        sourceBranch: backstage/update
+        targetBranch: master
+        reviewers:
+          - mohsharm
+          - dk
+
+    # - id: register
+    #   name: Register
+    #   action: catalog:register
+    #   input:
+    #     repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+    #     catalogInfoPath: '/catalog.yaml'
+
+  output:
+    links:
+      - title: Pull Request
+        url: ${{ steps.publish-pr.output.prUrl }} # link to the remote repository
+      # - title: Open in catalog
+      #   icon: catalog
+      #   entityRef: ${{ steps.register.output.entityRef }}

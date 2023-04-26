@@ -45,9 +45,9 @@ backend:
     # Default Helmet Content-Security-Policy values can be removed by setting the key to false
   reading:
     allow:
-      - host: example.com
-      - host: '*.mozilla.org'
-  # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
+      - host: gartner.com
+      - host: '*.gartner.com'
+  workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
 
 # See README.md in the proxy-backend plugin for information on the configuration format
 proxy:
@@ -180,6 +180,10 @@ allure:
   baseUrl: http://localhost:5050/allure-docker-service
 
 integrations:
+  bitbucketServer:
+    - host: git.gartner.com
+      apiBaseUrl: https://git.gartner.com/rest/api/1.0
+      token: ${BITBUCKET_TOKEN}
   github:
     - host: github.com
       token: ${GITHUB_TOKEN}
@@ -223,6 +227,7 @@ catalog:
         - Component
         - API
         - Resource
+        - Template
         - System
         - Domain
         - Location
@@ -279,6 +284,10 @@ catalog:
       target: ../../plugins/scaffolder-backend/sample-templates/all-templates.yaml
       rules:
         - allow: [Template]
+    - type: file
+      target: ../../plugins/scaffolder-backend/sample-templates/bitbucket-demo/template/myplugin.yaml
+      rules:
+        - allow: [Template]
     # Backstage end-to-end tests of TechDocs
     - type: file
       target: ../../cypress/e2e-fixture.catalog.info.yaml
@@ -289,6 +298,8 @@ scaffolder:
   #   email: scaffolder@backstage.io
   # Use to customize the default commit message when new components are created
   # defaultCommitMessage: 'Initial commit'
+  bitbucketServer:
+    visibility: 'private'
 
 auth:
   ### Add auth.keyStore.provider to more granularly control how to store JWK data when running
