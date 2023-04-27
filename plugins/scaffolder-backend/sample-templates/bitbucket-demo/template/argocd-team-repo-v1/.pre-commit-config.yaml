@@ -1,0 +1,21 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: detect-aws-credentials
+      - id: detect-private-key
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: no-commit-to-branch
+        args: [--branch, develop, --branch, master]
+  - repo: meta
+    hooks:
+      - id: check-hooks-apply
+      # - id: identity # can be enabled to debug
+
+fail_fast: true
+default_stages: [commit, push]
+minimum_pre_commit_version: 2.13.0

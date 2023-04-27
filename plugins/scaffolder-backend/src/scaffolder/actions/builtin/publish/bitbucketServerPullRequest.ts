@@ -38,6 +38,7 @@ const getReviewers = async (opts: { reviewers: string[] }) => {
 
 const createPullRequest = async (opts: {
   title: string;
+  description: string;
   project: string;
   repo: string;
   sourceBranch: string;
@@ -50,6 +51,7 @@ const createPullRequest = async (opts: {
     project,
     repo,
     title,
+    description,
     sourceBranch,
     targetBranch,
     reviewers,
@@ -71,6 +73,7 @@ const createPullRequest = async (opts: {
     method: 'POST',
     body: JSON.stringify({
       title: title,
+      description: description ?? title,
       reviewers: reviewersObject,
       fromRef: {
         repository: {
@@ -147,6 +150,7 @@ export function createPublishBitbucketServerPullRequestAction(options: {
   return createTemplateAction<{
     repoUrl: string;
     title: string;
+    description: string;
     sourceBranch: string;
     targetBranch: string;
     reviewers?: string[];
@@ -159,7 +163,13 @@ export function createPublishBitbucketServerPullRequestAction(options: {
     schema: {
       input: {
         type: 'object',
-        required: ['repoUrl', 'title', 'sourceBranch', 'targetBranch'],
+        required: [
+          'repoUrl',
+          'title',
+          'description',
+          'sourceBranch',
+          'targetBranch',
+        ],
         properties: {
           repoUrl: {
             title: 'Repository Location',
@@ -169,6 +179,11 @@ export function createPublishBitbucketServerPullRequestAction(options: {
             title: 'PR Title',
             type: 'string',
             description: `Sets the pull request title. The default value is 'Update by backstage'`,
+          },
+          description: {
+            title: 'Pull Request Description',
+            type: 'string',
+            description: 'The description of the pull request',
           },
           sourceBranch: {
             title: 'Source Branch',
@@ -216,8 +231,9 @@ export function createPublishBitbucketServerPullRequestAction(options: {
       const {
         repoUrl,
         title,
+        description,
         sourceBranch,
-        targetBranch = 'master',
+        targetBranch,
         reviewers,
       } = ctx.input;
 
@@ -260,6 +276,7 @@ export function createPublishBitbucketServerPullRequestAction(options: {
         project,
         repo,
         title,
+        description,
         sourceBranch,
         targetBranch,
         reviewers,

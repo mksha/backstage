@@ -18,6 +18,8 @@ export { createPublishAzureAction } from './azure';
 export { createPublishBitbucketAction } from './bitbucket';
 export { createPublishBitbucketCloudAction } from './bitbucketCloud';
 export { createPublishBitbucketServerAction } from './bitbucketServer';
+export { createPublishBitbucketServerPushAction } from './bitbucketServerPush';
+export { createPublishBitbucketServerPullRequestAction } from './bitbucketServerPullRequest';
 export { createPublishGerritAction } from './gerrit';
 export { createPublishGerritReviewAction } from './gerritReview';
 export { createPublishGithubAction } from './github';

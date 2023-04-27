@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Backstage Authors
+ * Copyright 2023 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ export function createPublishBitbucketServerPushAction(options: {
 
   return createTemplateAction<{
     repoUrl: string;
-    targetBranch?: string;
+    branch: string;
     sourcePath?: string;
     token?: string;
     gitCommitMessage?: string;
@@ -97,16 +97,16 @@ export function createPublishBitbucketServerPushAction(options: {
     schema: {
       input: {
         type: 'object',
-        required: ['repoUrl', 'targetBranch'],
+        required: ['repoUrl', 'branch'],
         properties: {
           repoUrl: {
             title: 'Repository Location',
             type: 'string',
           },
-          targetBranch: {
-            title: 'Target Branch',
+          branch: {
+            title: 'Branch Name',
             type: 'string',
-            description: `Sets the target branch for the pull request. The default value is 'master'`,
+            description: `Sets the branch where content will be pushed.'`,
           },
           sourcePath: {
             title: 'Source Path',
@@ -154,8 +154,8 @@ export function createPublishBitbucketServerPushAction(options: {
     async handler(ctx) {
       const {
         repoUrl,
-        targetBranch = 'backstage/update',
-        gitCommitMessage = 'commit by backstage',
+        branch,
+        gitCommitMessage = 'init commit by backstage',
         gitAuthorName,
         gitAuthorEmail,
       } = ctx.input;
@@ -218,7 +218,7 @@ export function createPublishBitbucketServerPushAction(options: {
         dir: getRepoSourceDirectory(ctx.workspacePath, ctx.input.sourcePath),
         remoteUrl,
         auth,
-        defaultBranch: targetBranch,
+        defaultBranch: branch,
         logger: ctx.logger,
         commitMessage: gitCommitMessage
           ? gitCommitMessage

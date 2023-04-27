@@ -1,0 +1,229 @@
+chartVersion: ${{ values.helmChart.version }}
+application: ${{ values.service.name }}
+namespace: ${{ values.k8s.commonNamespaces[0] }}
+workload: ${{ values.workload[values.k8s.commonNamespaces[0]] }}
+image:
+  tag: latest
+values: |-
+  authorizationProvider: ${{ values.k8s.authorizationProvider }}
+  defaultTags:
+    created_by: ${{ values.labels.createdBy }}
+    app_component: ${{ values.labels.appComponent }}
+    system_risk_class: '${{ values.labels.systemRiskClass }}'
+    function: ${{ values.labels.function }}
+
+  image:
+    projectKey: ${{ values.service.bitbucketProjectKey }}
+
+  resources:
+    limits:
+    {%- if values.service.runtime=='node' %}
+      cpu: 300m
+      memory: 800Mi
+    {%- elif values.service.runtime=='python' %}
+      cpu: 500m
+      memory: 1Gi
+    {%- else %}
+      cpu: '1'
+      memory: 2Gi
+    {%- endif %}
+    requests:
+    {%- if values.service.runtime=='node' %}
+      cpu: 200m
+      memory: 500Mi
+    {%- elif values.service.runtime=='python' %}
+      cpu: 250m
+      memory: 500Mi
+    {%- else %}
+      cpu: 500m
+      memory: 1Gi
+    {%- endif %}
+
+  livenessProbe:
+    path: ${{ values.healthChecks.liveness }}
+    port: 8080
+    initialDelaySeconds: 60
+  readinessProbe:
+    path: ${{ values.healthChecks.readiness }}
+    port: 8080
+    initialDelaySeconds: 60
+
+  {%- if values.service.runtime=='node' %}
+  podAnnotations: {}
+  {%- elif values.service.runtime=='python' %}
+  podAnnotations: {}
+  {%- else %}
+  podAnnotations:
+    ad.datadoghq.com/${{ values.service.name }}.check_names: |
+      [
+        "tomcat",
+        "jmx"
+      ]
+    ad.datadoghq.com/${{ values.service.name }}.init_configs: |
+      [
+        {
+          "is_jmx": true,
+          "collect_default_metrics": true
+        },
+        {
+          "is_jmx": true
+        }
+      ]
+    ad.datadoghq.com/${{ values.service.name }}.instances: |
+      [
+        {
+          "host": "%%host%%",
+          "port": "9012"
+        },
+        {
+          "host": "%%host%%",
+          "port": "9012",
+          "conf": [
+            {
+              "include": {
+                "domain": "Catalina",
+                "type": "DataSource",
+                "attribute": {
+                  "initialSize": {
+                    "metric_type": "gauge",
+                    "alias": "tomcat.jdbc.initial_size"
+                  },
+                  "numActive": {
+                    "metric_type": "gauge",
+                    "alias": "tomcat.jdbc.num_active"
+                  },
+                  "maxActive": {
+                    "metric_type": "gauge",
+                    "alias": "tomcat.jdbc.max_active"
+                  },
+                  "numIdle": {
+                    "metric_type": "gauge",
+                    "alias": "tomcat.jdbc.num_idle"
+                  },
+                  "minIdle": {
+                    "metric_type": "gauge",
+                    "alias": "tomcat.jdbc.min_idle"
+                  },
+                  "maxIdle": {
+                    "metric_type": "gauge",
+                    "alias": "tomcat.jdbc.max_idle"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+  {%- endif %}
+
+  env:
+  {%- if values.service.runtime=='node' %}
+    - name: APP_ENVIRONMENT
+      value: prod
+  {%- elif values.service.runtime=='python' %}
+    - name: APP_ENVIRONMENT
+      value: prod
+    - name: AWS_REGION
+      value: us-east-1
+    - name: LOG_LEVEL # WARN = 30, INFO = 20, DEBUG = 10
+      value: "20"
+  {%- else %}
+    - name: JAVA_MS
+      value: -Xms1g
+    - name: JAVA_MX
+      value: -Xmx1g
+    - name: PROFILE_ENV
+      value: prod
+  {%- endif %}
+  {%- if values.integrations.enableConfigServer=='True' and values.k8s.authorizationProvider=='vault' and values.service.runtime=='java'%}
+    - name: AWS_REGION
+      value: us-east-1
+    - name: K8_LOGIN_PATH
+      value: pdo-eks-pdoprod-prod
+    - name: CONFIG_SERVER_HOST
+      value: config-server
+    - name: SPRING_CLOUD_STARTER_BOOTSTRAP
+      value: "true"
+  {%- endif %}
+
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 2
+    targetCPUUtilizationPercentage: 70
+
+  virtualService:
+  {%- if values.service.enableInternalEndpoint=='True' %}
+    common:
+      hosts:
+        - ${{ values.service.name }}.${{ values.k8s.commonNamespaces[0] }}
+      gateways:
+        - mesh
+      abstractedHttpRoutes:
+        - name: API
+          match:
+            - uri:
+                prefix: ${{ values.service.endpoint }}/
+        {%- if values.service.enableEndpointRewrite=='True' %}
+          rewrite:
+            uri: /
+        {%- endif %}
+    instances:
+      - name: internal
+        hosts:
+          - internal-${{ values.k8s.commonNamespaces[0] }}-use1.pdo.aws.gartner.com
+          - canary-${{ values.k8s.commonNamespaces[0] }}-use1.pdo.aws.gartner.com
+        gateways:
+          - istio-system/internal-${{ values.k8s.commonNamespaces[0] }}-gateway
+          - istio-system/canary-${{ values.k8s.commonNamespaces[0] }}-gateway
+        abstractedHttpRoutes:
+          - name: APIInternal
+            match:
+              - uri:
+                  prefix: ${{ values.service.endpoint }}/internal/
+          {%- if values.service.enableEndpointRewrite=='True' %}
+            rewrite:
+              uri: /
+          {%- endif %}
+      - name: external
+        hosts:
+          - '*.pdo.aws.gartner.com'
+        gateways:
+          - istio-system/external-${{ values.k8s.commonNamespaces[0] }}-gateway
+  {%- else %}
+    instances:
+    - name: common
+      hosts:
+        - '*.pdo.aws.gartner.com'
+      gateways:
+        - istio-system/internal-${{ values.k8s.commonNamespaces[0] }}-gateway
+        - istio-system/external-${{ values.k8s.commonNamespaces[0] }}-gateway
+        - istio-system/canary-${{ values.k8s.commonNamespaces[0] }}-gateway
+        - mesh
+      abstractedHttpRoutes:
+        - name: Main
+          match:
+            - uri:
+                prefix: ${{ values.service.endpoint }}
+        {%- if values.service.enableEndpointRewrite=='True' %}
+          rewrite:
+            uri: /
+        {%- endif %}
+  {%- endif %}
+
+  rollout:
+    strategy:
+      type: Canary
+      steps:
+        - setCanaryScale:
+            weight: 100
+        - pause: {}
+        - setWeight: 50
+        - pause: {}
+        - setWeight: 100
+      trafficRouting:
+        enableDefaultVirtualServiceRoutes: true
+
+  versionAffinity:
+    cookieName: ${{ values.service.name }}
+    ttl: 60
+    path: ${{ values.service.endpoint }}

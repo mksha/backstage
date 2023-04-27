@@ -38,6 +38,7 @@ spec:
               minLength: 1
               maxLength: 63
               enum:
+                - test
                 - testpoc
                 - avatars
                 - search
@@ -325,6 +326,55 @@ spec:
               default: false
               description: Set if want to integrate config server with your service.
               ui:autofocus: true
+    - title: Fill in the pull request details
+      properties:
+        pr:
+          type: object
+          title: Pull Request
+          required:
+            - title
+            - description
+            - sourceBranch
+            - targetBranch
+            - reviewers
+          properties:
+            title:
+              title: Pull Request Title
+              type: string
+              default: Onboard Application
+              description: Pull request title.
+              ui:autofocus: true
+            description:
+              title: Pull Request Description
+              type: string
+              default: Onboard Application To New CICD V2 Pipeline
+              description: Pull request description.
+              ui:autofocus: true
+            sourceBranch:
+              title: Bitbucket Source Branch
+              type: string
+              default: backstage/update
+              description: Bitbucket source branch from which we want to create PR.
+              ui:autofocus: true
+            targetBranch:
+              title: Bitbucket Target Branch
+              type: string
+              default: master
+              description: Bitbucket target branch to which we want to create PR against.
+              ui:autofocus: true
+            reviewers:
+              title: Pull Request Reviewers
+              type: array
+              minLength: 1
+              ui:options:
+                addable: true
+                orderable: true
+                removable: false
+              items:
+                type: string
+              description: Bitbucket target branch to which we want to create PR against.
+              uniqueItems: true
+              ui:autofocus: true
 
   # here's the steps that are executed in series in the scaffolder backend
   steps:
@@ -332,7 +382,7 @@ spec:
       name: Generate Content From Teamplate
       action: fetch:template
       input:
-        url: ./argocd-team-repo
+        url: ./argocd-team-repo-v1
         copyWithoutTemplating:
           - .gitignore
           - .pre-commit-config.yaml
@@ -376,18 +426,18 @@ spec:
       action: publish:bitbucketServer:push
       input:
         repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=argo${{ parameters.labels.businessUnit }}
-        targetBranch: backstage/update
+        branch: ${{ parameters.pr.sourceBranch }}
+
     - id: publish-pr
       name: Create PR out of changes
       action: publish:bitbucketServer:pullRequest
       input:
-        title: Onboard application ${{ parameters.service.name }}
+        title: ${{ parameters.pr.title }}
+        description: ${{ parameters.pr.description }}
         repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=argo${{ parameters.labels.businessUnit }}
-        sourceBranch: backstage/update
-        targetBranch: master
-        reviewers:
-          - mohsharm
-          - dk
+        sourceBranch: ${{ parameters.pr.sourceBranch }}
+        targetBranch: ${{ parameters.pr.targetBranch }}
+        reviewers: ${{ parameters.pr.reviewers }}
 
     # - id: register
     #   name: Register

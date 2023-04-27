@@ -1,0 +1,115 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: ${{ values.labels.businessUnit }}.prod.use1.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}
+  namespace: argocd
+  labels:
+    business_unit: ${{ values.labels.businessUnit }}
+    service_team: ${{ values.service.team }}
+    app_contacts: ${{ values.labels.appContacts }}
+    created_by: ${{ values.labels.created_by }}
+    app_environment: prod
+    network_environment: prod
+    region: us-east-1
+    system_risk_class: '1'
+    app_component: gitops
+    application: ${{ values.labels.businessUnit }}.prod.use1.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}
+spec:
+  generators:
+    - git:
+        repoURL: ssh://git@git.gartner.com:7999/argo${{ values.labels.businessUnit }}/${{ values.service.team }}.git
+        revision: master
+        files:
+          - path: "prod/apps/*/us-east-1/*/*.config.yaml"
+  template:
+    metadata:
+      name: ${{ values.labels.businessUnit }}.prod.use1.${{ "{{namespace}}" }}.${{ values.service.bitbucketProjectKey }}.${{ "{{application}}" }}
+      labels:
+        business_unit: ${{ values.labels.businessUnit }}
+        service_team: ${{ values.service.team }}
+        app_contacts: ${{ values.labels.appContacts }}
+        created_by: ${{ values.labels.created_by }}
+        app_environment: prod
+        network_environment: prod
+        region: us-east-1
+        system_risk_class: '1'
+        application: '{{application}}'
+        app_component: gitops
+    spec:
+      ignoreDifferences:
+        - group: networking.istio.io
+          kind: VirtualService
+          jsonPointers:
+            - /spec/http/0/route/0/weight
+            - /spec/http/0/route/1/weight
+            - /spec/http/1/route/0/weight
+            - /spec/http/1/route/1/weight
+            - /spec/http/2/route/0/weight
+            - /spec/http/2/route/1/weight
+            - /spec/http/3/route/0/weight
+            - /spec/http/3/route/1/weight
+            - /spec/http/4/route/0/weight
+            - /spec/http/4/route/1/weight
+            - /spec/http/5/route/0/weight
+            - /spec/http/5/route/1/weight
+          # TODO: We need to update argocd to latest to take advantage of this feature
+          # TODO: https://argo-cd.readthedocs.io/en/latest/user-guide/diffing/
+          #
+          # jqPathExpressions:
+          # - .spec.http[*].route[*].weight
+      project: ${{ values.labels.businessUnit }}.prod.${{ values.service.bitbucketProjectKey }}.apps
+      source:
+        repoURL: https://artifactory.svc.aws.gartner.com/artifactory/helm/
+        chart: ${{ values.helmChartName }}
+        targetRevision: {{chartVersion}}
+        path: .
+        # helm specific config
+        helm:
+          releaseName: {{application}}
+          # Extra parameters to set (same as setting through values.yaml, but these take precedence)
+          parameters:
+          - name: awsAccountId
+            value: '463874804002'
+            forceString: true
+          - name: namespace
+            value: {{namespace}}
+          - name: defaultTags.application
+            value: {{application}}
+          - name: defaultTags.region
+            value: us-east-1
+          - name: defaultTags.app_environment
+            value: prod
+          - name: defaultTags.network_environment
+            value: prod
+          - name: defaultTags.app_contacts
+            value: ${{ values.labels.appContacts }}
+          - name: image.tag
+            value: {{image.tag}}
+          - name: canaryHost
+            value: canary-{{namespace}}-use1.${{ values.labels.businessUnit }}.aws.gartner.com
+          - name: workload
+            value: '{{workload}}'
+          valueFiles:
+          - values.yaml
+          - values-${{ values.labels.businessUnit }}.yaml
+          # Values file as block file
+          values: |-
+            {{values}}
+      destination:
+        namespace: {{namespace}}
+        name: eks-${{ values.labels.businessUnit }}prod-us-east-1
+      # Sync policy
+      syncPolicy:
+        syncOptions:     # Sync options which modifies sync behavior
+        - Validate=true # disables resource validation (equivalent to 'kubectl apply --validate=false') ( true by default ).
+        - CreateNamespace=false # Namespace Auto-Creation ensures that namespace specified as the application destination exists in the destination cluster.
+        - PrunePropagationPolicy=foreground # Supported policies are background, foreground and orphan.
+        - ApplyOutOfSyncOnly=true # to skip syncing resources that are already in the desired state.
+        - PruneLast=true # Allow the ability for resource pruning to happen as a final, implicit wave of a sync operation
+        # The retry feature is available since v1.7
+        retry:
+          limit: 2 # number of failed sync attempt retries; unlimited number of attempts if less than 0
+          backoff:
+            duration: 5s # the amount to back off. Default unit is seconds, but could also be a duration (e.g. "2m", "1h")
+            factor: 2 # a factor to multiply the base duration after each failed retry
+            maxDuration: 2m # the maximum amount of time allowed for the backoff strategy
