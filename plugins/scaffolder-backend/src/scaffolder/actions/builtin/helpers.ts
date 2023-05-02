@@ -181,6 +181,34 @@ export async function commitAndPushRepo({
   return { commitHash };
 }
 
+export async function cloneRepCreateLocalBranchAndCheckout({
+  url,
+  dir,
+  auth,
+  logger,
+  branch,
+  remoteRef = 'master',
+}: {
+  url: string;
+  dir: string;
+  auth: { username: string; password: string } | { token: string };
+  logger: Logger;
+  branch: string;
+  remoteRef?: string;
+}): Promise<void> {
+  const git = Git.fromAuth({
+    ...auth,
+    logger,
+  });
+
+  await git.clone({
+    url: url,
+    dir,
+    ref: remoteRef,
+  });
+  await git.branch({ dir, ref: branch });
+}
+
 type BranchProtectionOptions = {
   client: Octokit;
   owner: string;

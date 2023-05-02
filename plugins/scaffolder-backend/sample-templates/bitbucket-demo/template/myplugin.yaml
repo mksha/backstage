@@ -378,6 +378,21 @@ spec:
 
   # here's the steps that are executed in series in the scaffolder backend
   steps:
+    - id: publish-create-repo
+      name: Create Repository
+      action: publish:bitbucketServer:repo:create
+      input:
+        repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=argo${{ parameters.labels.businessUnit }}
+        defaultBranch: master
+
+    - id: publish-create-clone
+      name: Clone Repository
+      action: publish:bitbucketServer:repo:clone
+      input:
+        repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=argo${{ parameters.labels.businessUnit }}
+        baseBranch: master
+        checkoutBranch: feature/backstage
+
     - id: fetch
       name: Generate Content From Teamplate
       action: fetch:template
@@ -386,6 +401,7 @@ spec:
         copyWithoutTemplating:
           - .gitignore
           - .pre-commit-config.yaml
+        replace: true
         values:
           service: ${{ parameters.service }}
           labels: ${{ parameters.labels }}
@@ -401,7 +417,7 @@ spec:
           integration: ${{ parameters.integration }}
           helmChart:
             name: webapp
-            version: 5.5.0
+            version: 5.1.0
 
     # - id: fetch-docs
     #   name: Fetch Docs
@@ -420,13 +436,12 @@ spec:
     #     description: ${{ parameters.service.team }} team repo that contains the argocd related components for this team.
     #     repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=aw${{ parameters.labels.businessUnit }}
     #     repoVisibility: private
-
     - id: publish-changes
       name: Push Changes To Repository
       action: publish:bitbucketServer:push
       input:
         repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=argo${{ parameters.labels.businessUnit }}
-        branch: ${{ parameters.pr.sourceBranch }}
+        branch: 'feature/backstage'
 
     - id: publish-pr
       name: Create PR out of changes
@@ -446,10 +461,10 @@ spec:
     #     repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
     #     catalogInfoPath: '/catalog.yaml'
 
-  output:
-    links:
-      - title: Pull Request
-        url: ${{ steps.publish-pr.output.prUrl }} # link to the remote repository
+  # output:
+  #   links:
+  #     - title: Pull Request
+  #       url: ${{ steps.publish-pr.output.prUrl }} # link to the remote repository
       # - title: Open in catalog
       #   icon: catalog
       #   entityRef: ${{ steps.register.output.entityRef }}

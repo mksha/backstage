@@ -181,7 +181,11 @@ export class Git {
         `Failed to fetch repo {dir=${dir},remote=${remote}}`,
       );
       if (ex.data) {
-        throw new Error(`${ex.message} {data=${JSON.stringify(ex.data)}}`);
+        throw new Error(
+          `${ex.message} {data=${JSON.stringify(ex.data)}, ex=${JSON.stringify(
+            ex,
+          )}}`,
+        );
       }
       throw ex;
     }
