@@ -4,14 +4,17 @@ metadata:
   name: ${{ values.service.team }}
   description:  ARGOCD team config repo component for ${{ values.service.team }}.
   labels:
-    business_unit: ${{values.labels.businessUnit}}
+    business_unit: ${{ values.labels.businessUnit }}
+    service_team: ${{ values.service.team }}
+    app_contacts: ${{ values.labels.appContacts }}
+    created_by: ${{ values.labels.created_by }}
   annotations:
     backstage.io/kubernetes-id: value
   tags:
     - argocd
     - gitops
   links:
-    - url: https://argo.svc.aws.gartner.com/applications/${{values.labels.businessUnit}}.dev.${{values.service.bitbucketProjectKey}}.${{ values.service.team }}.root
+    - url: https://argocd.cloudservicesdev.aws.gartner.com/applications/${{values.labels.businessUnit}}.dev.${{values.service.bitbucketProjectKey}}.${{ values.service.team }}.root
       title: Dev(ARGOCD Root Application)
       icon: dashboard
       type: admin-dashboard

@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: ${{ values.labels.businessUnit }}.dev.use2.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}
+  name: ${{ values.labels.businessUnit }}.dev.us-east-2.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}
   namespace: argocd
   labels:
     business_unit: ${{ values.labels.businessUnit }}
@@ -13,7 +13,7 @@ metadata:
     region: us-east-2
     system_risk_class: '1'
     app_component: gitops
-    application: ${{ values.labels.businessUnit }}.dev.use2.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}
+    application: ${{ values.labels.businessUnit }}.dev.us-east-2.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}
 spec:
   generators:
     - git:
@@ -23,7 +23,7 @@ spec:
           - path: "dev/apps/*/us-east-2/*/*.config.yaml"
   template:
     metadata:
-      name: ${{ values.labels.businessUnit }}.dev.use2.${{ "{{namespace}}" }}.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}.${{ "{{application}}" }}
+      name: ${{ values.labels.businessUnit }}.dev.us-east-2.${{ "{{namespace}}" }}.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}.${{ "{{application}}" }}
       labels:
         business_unit: ${{ values.labels.businessUnit }}
         service_team: ${{ values.service.team }}
@@ -44,21 +44,21 @@ spec:
       project: ${{ values.labels.businessUnit }}.dev.${{ values.service.bitbucketProjectKey }}.apps
       source:
         repoURL: https://artifactory.svc.aws.gartner.com/artifactory/helm/
-        chart: ${{ values.helmChartName }}
-        targetRevision: {{chartVersion}}
+        chart: ${{ values.helmChart.name }}
+        targetRevision: '{{chartVersion}}'
         path: .
         # helm specific config
         helm:
-          releaseName: {{application}}
+          releaseName: '{{application}}'
           # Extra parameters to set (same as setting through values.yaml, but these take precedence)
           parameters:
           - name: awsAccountId
             value: '152362558367'
             forceString: true
           - name: namespace
-            value: {{namespace}}
+            value: '{{namespace}}'
           - name: defaultTags.application
-            value: {{application}}
+            value: '{{application}}'
           - name: defaultTags.region
             value: us-east-2
           - name: defaultTags.app_environment
@@ -70,7 +70,7 @@ spec:
           - name: defaultTags.service_team
             value: ${{ values.service.team }}
           - name: image.tag
-            value: {{image.tag}}
+            value: '{{image.tag}}'
           - name: canaryHost
             value: canary-{{namespace}}-use2.${{ values.labels.businessUnit }}dev.aws.gartner.com
           - name: workload
@@ -82,14 +82,14 @@ spec:
           values: |-
             {{values}}
       destination:
-        namespace: {{namespace}}
+        namespace: '{{namespace}}'
         name: eks-${{ values.labels.businessUnit }}dev-us-east-2
       # Sync policy
       syncPolicy:
-        # automated: # automated sync by default retries failed attempts 5 times with following delays between attempts ( 5s, 10s, 20s, 40s, 80s ); retry controlled using `retry` field.
-        #   prune: true # Specifies if resources should be pruned during auto-syncing ( false by default ).
-        #   selfHeal: true # Specifies if partial app sync should be executed when resources are changed only in target Kubernetes cluster and no git change detected ( false by default ).
-        #   allowEmpty: true # Allows deleting all application resources during automatic syncing ( false by default ).
+        automated: # automated sync by default retries failed attempts 5 times with following delays between attempts ( 5s, 10s, 20s, 40s, 80s ); retry controlled using `retry` field.
+          prune: true # Specifies if resources should be pruned during auto-syncing ( false by default ).
+          selfHeal: true # Specifies if partial app sync should be executed when resources are changed only in target Kubernetes cluster and no git change detected ( false by default ).
+          allowEmpty: true # Allows deleting all application resources during automatic syncing ( false by default ).
         syncOptions:     # Sync options which modifies sync behavior
         - Validate=true # disables resource validation (equivalent to 'kubectl apply --validate=false') ( true by default ).
         - CreateNamespace=false # Namespace Auto-Creation ensures that namespace specified as the application destination exists in the destination cluster.

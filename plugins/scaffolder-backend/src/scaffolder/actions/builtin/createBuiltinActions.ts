@@ -48,6 +48,12 @@ import {
   createGithubWebhookAction,
 } from './github';
 import {
+  createBitbucketServerBranchPushAction,
+  createBitbucketServerPullRequestOpenAction,
+  createBitbucketServerRepoCloneAction,
+  createBitbucketServerRepoCreateAction,
+} from './bitbucketServer';
+import {
   createPublishAzureAction,
   createPublishBitbucketAction,
   createPublishBitbucketCloudAction,
@@ -213,6 +219,22 @@ export const createBuiltinActions = (
       integrations,
       config,
       githubCredentialsProvider,
+    }),
+    createBitbucketServerBranchPushAction({
+      integrations,
+      config,
+    }),
+    createBitbucketServerPullRequestOpenAction({
+      integrations,
+      config,
+    }),
+    createBitbucketServerRepoCloneAction({
+      integrations,
+      config,
+    }),
+    createBitbucketServerRepoCreateAction({
+      integrations,
+      config,
     }),
   ];
 

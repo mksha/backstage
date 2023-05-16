@@ -1,3 +1,6 @@
+{%- set nodeRegExp = r/^node*/g %}
+{%- set javaRegExp = r/^java*/g %}
+{%- set pythonRegExp = r/^python*/g %}
 chartVersion: ${{ values.helmChart.version }}
 application: ${{ values.service.name }}
 namespace: ${{ values.k8s.commonNamespaces[0] }}
@@ -17,9 +20,12 @@ values: |-
 
   resources:
     limits:
-    {%- if values.service.runtime=='node' %}
+    {%- if nodeRegExp.test(values.service.runtime) %}
       cpu: 300m
       memory: 800Mi
+    {%- elif javaRegExp.test(values.service.runtime) %}
+      cpu: '1'
+      memory: 2Gi
     {%- elif values.service.runtime=='python' %}
       cpu: 500m
       memory: 1Gi
@@ -28,9 +34,12 @@ values: |-
       memory: 2Gi
     {%- endif %}
     requests:
-    {%- if values.service.runtime=='node' %}
+    {%- if nodeRegExp.test(values.service.runtime) %}
       cpu: 200m
       memory: 500Mi
+    {%- elif javaRegExp.test(values.service.runtime) %}
+      cpu: '1'
+      memory: 1.5Gi
     {%- elif values.service.runtime=='python' %}
       cpu: 250m
       memory: 500Mi
@@ -48,7 +57,7 @@ values: |-
     port: 8080
     initialDelaySeconds: 60
 
-  {%- if values.service.runtime=='node' %}
+  {%- if nodeRegExp.test(values.service.runtime) %}
   podAnnotations: {}
   {%- elif values.service.runtime=='python' %}
   podAnnotations: {}
@@ -117,7 +126,7 @@ values: |-
   {%- endif %}
 
   env:
-  {%- if values.service.runtime=='node' %}
+  {%- if nodeRegExp.test(values.service.runtime) %}
     - name: APP_ENVIRONMENT
       value: dev
   {%- elif values.service.runtime=='python' %}
@@ -135,7 +144,7 @@ values: |-
     - name: PROFILE_ENV
       value: dev
   {%- endif %}
-  {%- if values.integrations.enableConfigServer=='True' and values.k8s.authorizationProvider=='vault' and values.service.runtime=='java'%}
+  {%- if values.integrations.enableConfigServer and values.k8s.authorizationProvider=='vault' and javaRegExp.test(values.service.runtime)%}
     - name: AWS_REGION
       value: us-east-1
     - name: K8_LOGIN_PATH
@@ -152,7 +161,7 @@ values: |-
     targetCPUUtilizationPercentage: 70
 
   virtualService:
-  {%- if values.service.enableInternalEndpoint=='True' %}
+  {%- if values.service.enableInternalEndpoint %}
     common:
       hosts:
         - ${{ values.service.name }}.${{ values.k8s.commonNamespaces[0] }}
@@ -163,7 +172,7 @@ values: |-
           match:
             - uri:
                 prefix: ${{ values.service.endpoint }}/
-        {%- if values.service.enableEndpointRewrite=='True' %}
+        {%- if values.service.enableEndpointRewrite %}
           rewrite:
             uri: /
         {%- endif %}
@@ -180,7 +189,7 @@ values: |-
             match:
               - uri:
                   prefix: ${{ values.service.endpoint }}/internal/
-          {%- if values.service.enableEndpointRewrite=='True' %}
+          {%- if values.service.enableEndpointRewrite %}
             rewrite:
               uri: /
           {%- endif %}
@@ -204,7 +213,7 @@ values: |-
           match:
             - uri:
                 prefix: ${{ values.service.endpoint }}
-        {%- if values.service.enableEndpointRewrite=='True' %}
+        {%- if values.service.enableEndpointRewrite %}
           rewrite:
             uri: /
         {%- endif %}

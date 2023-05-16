@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: ${{ values.labels.businessUnit }}.prod.use2.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}
+  name: ${{ values.labels.businessUnit }}.prod.us-east-2.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}
   namespace: argocd
   labels:
     business_unit: ${{ values.labels.businessUnit }}
@@ -13,7 +13,7 @@ metadata:
     region: us-east-2
     system_risk_class: '1'
     app_component: gitops
-    application: ${{ values.labels.businessUnit }}.prod.use2.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}
+    application: ${{ values.labels.businessUnit }}.prod.us-east-2.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}
 spec:
   generators:
     - git:
@@ -23,7 +23,7 @@ spec:
           - path: "prod/apps/*/us-east-2/*/*.config.yaml"
   template:
     metadata:
-      name: ${{ values.labels.businessUnit }}.prod.use2.${{ "{{namespace}}" }}.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}.${{ "{{application}}" }}
+      name: ${{ values.labels.businessUnit }}.prod.us-east-2.${{ "{{namespace}}" }}.${{ values.service.bitbucketProjectKey }}.${{ values.service.team }}.${{ "{{application}}" }}
       labels:
         business_unit: ${{ values.labels.businessUnit }}
         service_team: ${{ values.service.team }}
@@ -60,21 +60,21 @@ spec:
       project: ${{ values.labels.businessUnit }}.prod.${{ values.service.bitbucketProjectKey }}.apps
       source:
         repoURL: https://artifactory.svc.aws.gartner.com/artifactory/helm/
-        chart: ${{ values.helmChartName }}
-        targetRevision: {{chartVersion}}
+        chart: ${{ values.helmChart.name }}
+        targetRevision: '{{chartVersion}}'
         path: .
         # helm specific config
         helm:
-          releaseName: {{application}}
+          releaseName: '{{application}}'
           # Extra parameters to set (same as setting through values.yaml, but these take precedence)
           parameters:
           - name: awsAccountId
             value: '463874804002'
             forceString: true
           - name: namespace
-            value: {{namespace}}
+            value: '{{namespace}}'
           - name: defaultTags.application
-            value: {{application}}
+            value: '{{application}}'
           - name: defaultTags.region
             value: us-east-2
           - name: defaultTags.app_environment
@@ -86,7 +86,7 @@ spec:
           - name: defaultTags.service_team
             value: ${{ values.service.team }}
           - name: image.tag
-            value: {{image.tag}}
+            value: '{{image.tag}}'
           - name: canaryHost
             value: canary-{{namespace}}-use2.${{ values.labels.businessUnit }}.aws.gartner.com
           - name: workload
@@ -98,7 +98,7 @@ spec:
           values: |-
             {{values}}
       destination:
-        namespace: {{namespace}}
+        namespace: '{{namespace}}'
         name: eks-${{ values.labels.businessUnit }}prod-us-east-2
       # Sync policy
       syncPolicy:

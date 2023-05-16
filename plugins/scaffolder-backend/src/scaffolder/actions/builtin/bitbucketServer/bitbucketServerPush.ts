@@ -22,7 +22,7 @@ import {
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import { initRepoAndPush } from '../helpers';
 import { getRepoInfo } from './bitbucketServerUtil';
-import { getRepoSourceDirectory, parseRepoUrl } from './util';
+import { getRepoSourceDirectory, parseRepoUrl } from '../publish/util';
 import { Config } from '@backstage/config';
 
 /**
@@ -30,7 +30,7 @@ import { Config } from '@backstage/config';
  * create a PR out of it to Bitbucket Server.
  * @public
  */
-export function createPublishBitbucketServerPushAction(options: {
+export function createBitbucketServerBranchPushAction(options: {
   integrations: ScmIntegrationRegistry;
   config: Config;
 }) {
@@ -45,7 +45,7 @@ export function createPublishBitbucketServerPushAction(options: {
     gitAuthorName?: string;
     gitAuthorEmail?: string;
   }>({
-    id: 'publish:bitbucketServer:push',
+    id: 'bitbucketServer:branch:push',
     description:
       'Checkouts a git branch of repository of the content in the workspace, and creates a PR out of it to Bitbucket Server.',
     schema: {

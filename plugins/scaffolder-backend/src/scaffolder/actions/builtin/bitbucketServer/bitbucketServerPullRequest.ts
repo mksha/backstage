@@ -21,7 +21,7 @@ import {
 } from '@backstage/integration';
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import fetch, { Response, RequestInit } from 'node-fetch';
-import { parseRepoUrl } from './util';
+import { parseRepoUrl } from '../publish/util';
 import { getRepoInfo, getRequiredReviewers } from './bitbucketServerUtil';
 import { Config } from '@backstage/config';
 import { Logger } from 'winston';
@@ -183,7 +183,7 @@ const createPullRequest = async (opts: {
  * create a PR out of it to Bitbucket Server.
  * @public
  */
-export function createPublishBitbucketServerPullRequestAction(options: {
+export function createBitbucketServerPullRequestOpenAction(options: {
   integrations: ScmIntegrationRegistry;
   config: Config;
 }) {
@@ -199,7 +199,7 @@ export function createPublishBitbucketServerPullRequestAction(options: {
     sourcePath?: string;
     token?: string;
   }>({
-    id: 'publish:bitbucketServer:pullRequest',
+    id: 'bitbucketServer:pullRequest:open',
     description:
       'Checkouts a git branch of repository of the content in the workspace, and creates a PR out of it to Bitbucket Server.',
     schema: {

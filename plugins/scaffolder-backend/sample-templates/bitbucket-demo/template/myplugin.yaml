@@ -1,8 +1,8 @@
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: pdo-cicd-0.0.1
-  title: PDO CICD v0.0.1
+  name: pdo-cicd-0.0.2
+  title: PDO CICD v0.0.2
   description: PDO CICD framework
 spec:
   owner: pdo-devops
@@ -48,6 +48,7 @@ spec:
                 - champions
                 - seahawks
                 - daredevils
+                - armada
               ui:autofocus: true
               ui:help: Example avatars, jedi etc.
             bitbucketProjectKey:
@@ -70,9 +71,20 @@ spec:
               minLength: 1
               maxLength: 63
               enum:
-                - java
-                - node
-                - python
+                - java8
+                - java11
+                - java12
+                - java13
+                - java16
+                - java17
+                - nodejs12
+                - nodejs14
+                - nodejs16
+                - python37
+                - python38
+                - python39
+                - python310
+                - python311
               description: Service runtime.
               ui:autofocus: true
             endpoint:
@@ -83,7 +95,7 @@ spec:
               format: uri-reference
               ui:autofocus: true
               ui:help: Example /slideshow, /onboard etc.
-            enabledInternalEndpoint:
+            enableInternalEndpoint:
               title: Enable internal endpoint
               type: boolean
               default: false
@@ -353,7 +365,7 @@ spec:
             sourceBranch:
               title: Bitbucket Source Branch
               type: string
-              default: backstage/update
+              default: feature/backstage-update
               description: Bitbucket source branch from which we want to create PR.
               ui:autofocus: true
             targetBranch:
@@ -384,6 +396,7 @@ spec:
       input:
         repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=argo${{ parameters.labels.businessUnit }}
         defaultBranch: master
+        description: This repo will be used to create argo components for all applications owned by ${{ parameters.service.team }} team.
 
     - id: publish-create-clone
       name: Clone Repository
@@ -391,10 +404,10 @@ spec:
       input:
         repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=argo${{ parameters.labels.businessUnit }}
         baseBranch: master
-        checkoutBranch: feature/backstage
+        checkoutBranch: ${{ parameters.pr.sourceBranch }}
 
-    - id: fetch
-      name: Generate Content From Teamplate
+    - id: generate-content-from-template
+      name: Generate Content From Backstage Template
       action: fetch:template
       input:
         url: ./argocd-team-repo-v1
@@ -417,7 +430,7 @@ spec:
           integration: ${{ parameters.integration }}
           helmChart:
             name: webapp
-            version: 5.1.0
+            version: 5.5.0
 
     # - id: fetch-docs
     #   name: Fetch Docs
@@ -441,7 +454,10 @@ spec:
       action: publish:bitbucketServer:push
       input:
         repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=argo${{ parameters.labels.businessUnit }}
-        branch: 'feature/backstage'
+        branch: ${{ parameters.pr.sourceBranch }}
+        gitCommitMessage: Update via backstage template
+        gitAuthorName: ${{ user.entity.metadata.name }}
+        gitAuthorEmail: ${{ user.entity.spec.profile.email }}
 
     - id: publish-pr
       name: Create PR out of changes

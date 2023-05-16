@@ -21,7 +21,7 @@ import {
 } from '@backstage/integration';
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import fetch, { Response, RequestInit } from 'node-fetch';
-import { parseRepoUrl } from './util';
+import { parseRepoUrl } from '../publish/util';
 import { Config } from '@backstage/config';
 import { Logger } from 'winston';
 import { getRepoInfo } from './bitbucketServerUtil';
@@ -125,7 +125,7 @@ const performEnableLFS = async (opts: {
  * and publishes it to Bitbucket Server.
  * @public
  */
-export function createPublishBitbucketServerRepoCreateAction(options: {
+export function createBitbucketServerRepoCreateAction(options: {
   integrations: ScmIntegrationRegistry;
   config: Config;
 }) {
@@ -139,7 +139,7 @@ export function createPublishBitbucketServerRepoCreateAction(options: {
     enableLFS?: boolean;
     token?: string;
   }>({
-    id: 'publish:bitbucketServer:repo:create',
+    id: 'bitbucketServer:repo:create',
     description: 'Create a git repository in the Bitbucket Server.',
     schema: {
       input: {

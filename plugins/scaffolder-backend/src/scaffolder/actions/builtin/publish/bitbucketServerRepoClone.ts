@@ -20,56 +20,10 @@ import {
   ScmIntegrationRegistry,
 } from '@backstage/integration';
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import fetch, { Response, RequestInit } from 'node-fetch';
 import { parseRepoUrl } from './util';
+import { getRepoInfo } from './bitbucketServerUtil';
 import { Config } from '@backstage/config';
 import { Git } from '@backstage/backend-common';
-
-const getRepoInfo = async (opts: {
-  project: string;
-  repo: string;
-  authorization: string;
-  apiBaseUrl: string;
-}) => {
-  const { project, repo, authorization, apiBaseUrl } = opts;
-
-  let response: Response;
-  const options: RequestInit = {
-    method: 'GET',
-    headers: {
-      Authorization: authorization,
-      'Content-Type': 'application/json',
-    },
-  };
-
-  try {
-    response = await fetch(
-      `${apiBaseUrl}/projects/${project}/repos/${repo}`,
-      options,
-    );
-  } catch (e) {
-    throw new Error(`Unable to get repository details, ${e}`);
-  }
-
-  if (response.status !== 200) {
-    throw new Error(
-      `Unable to get repository details, ${response.status} ${
-        response.statusText
-      }, ${await response.text()}`,
-    );
-  }
-
-  const r = await response.json();
-  let remoteUrl = '';
-  for (const link of r.links.clone) {
-    if (link.name === 'http') {
-      remoteUrl = link.href;
-    }
-  }
-
-  const repoContentsUrl = `${r.links.self[0].href}`;
-  return { remoteUrl, repoContentsUrl };
-};
 
 /**
  * Creates a new action that initializes a git repository of the content in the workspace
@@ -195,7 +149,7 @@ export function createPublishBitbucketServerRepoCloneAction(options: {
         logger: ctx.logger,
       });
 
-      const { remoteUrl, repoContentsUrl } = await getRepoInfo({
+      const { remoteUrl, repoContentsUrl, repoId } = await getRepoInfo({
         project,
         repo,
         authorization,

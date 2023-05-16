@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Backstage Authors
+ * Copyright 2021 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,17 +20,17 @@ import {
   ScmIntegrationRegistry,
 } from '@backstage/integration';
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { initRepoAndPush } from '../helpers';
+import { parseRepoUrl } from '../publish/util';
 import { getRepoInfo } from './bitbucketServerUtil';
-import { getRepoSourceDirectory, parseRepoUrl } from './util';
 import { Config } from '@backstage/config';
+import { Git } from '@backstage/backend-common';
 
 /**
- * Creates a new action that checkout a new git branch of the content in the workspace
- * create a PR out of it to Bitbucket Server.
+ * Creates a new action that initializes a git repository of the content in the workspace
+ * and publishes it to Bitbucket Server.
  * @public
  */
-export function createPublishBitbucketServerPushAction(options: {
+export function createBitbucketServerRepoCloneAction(options: {
   integrations: ScmIntegrationRegistry;
   config: Config;
 }) {
@@ -38,56 +38,43 @@ export function createPublishBitbucketServerPushAction(options: {
 
   return createTemplateAction<{
     repoUrl: string;
-    branch: string;
-    sourcePath?: string;
+    baseBranch?: string;
+    checkoutBranch: string;
+    clonePath?: string;
     token?: string;
-    gitCommitMessage?: string;
-    gitAuthorName?: string;
-    gitAuthorEmail?: string;
   }>({
-    id: 'publish:bitbucketServer:push',
+    id: 'bitbucketServer:repo:clone',
     description:
-      'Checkouts a git branch of repository of the content in the workspace, and creates a PR out of it to Bitbucket Server.',
+      'Clone a git repository from the Bitbucket Server, create a local branch and checkout to it.',
     schema: {
       input: {
         type: 'object',
-        required: ['repoUrl', 'branch'],
+        required: ['repoUrl', 'checkoutBranch'],
         properties: {
           repoUrl: {
             title: 'Repository Location',
             type: 'string',
           },
-          branch: {
-            title: 'Branch Name',
+          baseBranch: {
+            title: 'Base Branch For Checkout',
             type: 'string',
-            description: `Sets the branch where content will be pushed.'`,
+            description: `Base branch that will be used a base for new branches. The default value is 'master'`,
           },
-          sourcePath: {
-            title: 'Source Path',
-            description:
-              'Path within the workspace that will be used as the repository root. If omitted, the entire workspace will be published as the repository PR.',
+          checkoutBranch: {
+            title: 'Checkout Branch',
             type: 'string',
+            description: `Checkout branch that will be created locally and checked out to.`,
+          },
+          clonePath: {
+            title: 'Clone Path',
+            type: 'string',
+            description: `Path at where repo will be cloned out. Default is current workspace.`,
           },
           token: {
             title: 'Authentication Token',
             type: 'string',
             description:
               'The token to use for authorization to BitBucket Server',
-          },
-          gitCommitMessage: {
-            title: 'Git Commit Message',
-            type: 'string',
-            description: `Sets the commit message on the repository. The default value is 'initial commit'`,
-          },
-          gitAuthorName: {
-            title: 'Author Name',
-            type: 'string',
-            description: `Sets the author name for the commit. The default value is 'Scaffolder'`,
-          },
-          gitAuthorEmail: {
-            title: 'Author Email',
-            type: 'string',
-            description: `Sets the author email for the commit.`,
           },
         },
       },
@@ -98,8 +85,12 @@ export function createPublishBitbucketServerPushAction(options: {
             title: 'A URL to the repository with the provider',
             type: 'string',
           },
-          commitHash: {
-            title: 'The git commit hash of the initial commit',
+          repoContentsUrl: {
+            title: 'A URL to the root of the repository',
+            type: 'string',
+          },
+          dir: {
+            title: 'Clone path',
             type: 'string',
           },
         },
@@ -108,13 +99,13 @@ export function createPublishBitbucketServerPushAction(options: {
     async handler(ctx) {
       const {
         repoUrl,
-        branch,
-        gitCommitMessage = 'init commit by backstage',
-        gitAuthorName,
-        gitAuthorEmail,
+        baseBranch = 'master',
+        checkoutBranch,
+        clonePath = ctx.workspacePath,
       } = ctx.input;
 
       const { project, repo, host } = parseRepoUrl(repoUrl, integrations);
+
       if (!project) {
         throw new InputError(
           `Invalid URL provider was included in the repo URL to create ${ctx.input.repoUrl}, missing project`,
@@ -144,15 +135,6 @@ export function createPublishBitbucketServerPushAction(options: {
 
       const apiBaseUrl = integrationConfig.config.apiBaseUrl;
 
-      const gitAuthorInfo = {
-        name: gitAuthorName
-          ? gitAuthorName
-          : config.getOptionalString('scaffolder.defaultAuthor.name'),
-        email: gitAuthorEmail
-          ? gitAuthorEmail
-          : config.getOptionalString('scaffolder.defaultAuthor.email'),
-      };
-
       const auth = authConfig.token
         ? {
             token: token!,
@@ -162,26 +144,29 @@ export function createPublishBitbucketServerPushAction(options: {
             password: authConfig.password!,
           };
 
+      const git = Git.fromAuth({
+        ...auth,
+        logger: ctx.logger,
+      });
+
       const { remoteUrl, repoContentsUrl, repoId } = await getRepoInfo({
         project,
         repo,
         authorization,
         apiBaseUrl,
       });
-      const commitResult = await initRepoAndPush({
-        dir: getRepoSourceDirectory(ctx.workspacePath, ctx.input.sourcePath),
-        remoteUrl,
-        auth,
-        defaultBranch: branch,
-        logger: ctx.logger,
-        commitMessage: gitCommitMessage
-          ? gitCommitMessage
-          : config.getOptionalString('scaffolder.defaultCommitMessage'),
-        gitAuthorInfo,
-      });
 
-      ctx.output('commitHash', commitResult?.commitHash);
+      await git.clone({
+        url: remoteUrl,
+        dir: clonePath,
+        ref: baseBranch,
+      });
+      await git.branch({ dir: clonePath, ref: checkoutBranch });
+      await git.checkout({ dir: clonePath, ref: checkoutBranch });
+
       ctx.output('remoteUrl', remoteUrl);
+      ctx.output('repoContentsUrl', repoContentsUrl);
+      ctx.output('clonePath', clonePath);
     },
   });
 }

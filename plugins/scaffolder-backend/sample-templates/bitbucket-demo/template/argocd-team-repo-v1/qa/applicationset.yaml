@@ -60,21 +60,21 @@ spec:
       project: ${{ values.labels.businessUnit }}.qa.${{ values.service.bitbucketProjectKey }}.apps
       source:
         repoURL: https://artifactory.svc.aws.gartner.com/artifactory/helm/
-        chart: ${{ values.helmChartName }}
-        targetRevision: {{chartVersion}}
+        chart: ${{ values.helmChart.name }}
+        targetRevision: '{{chartVersion}}'
         path: .
         # helm specific config
         helm:
-          releaseName: {{application}}
+          releaseName: '{{application}}'
           # Extra parameters to set (same as setting through values.yaml, but these take precedence)
           parameters:
           - name: awsAccountId
             value: '152362558367'
             forceString: true
           - name: namespace
-            value: {{namespace}}
+            value: '{{namespace}}'
           - name: defaultTags.application
-            value: {{application}}
+            value: '{{application}}'
           - name: defaultTags.region
             value: us-east-1
           - name: defaultTags.app_environment
@@ -86,7 +86,7 @@ spec:
           - name: defaultTags.service_team
             value: ${{ values.service.team }}
           - name: image.tag
-            value: {{image.tag}}
+            value: '{{image.tag}}'
           - name: canaryHost
             value: canary-{{namespace}}-use1.${{ values.labels.businessUnit }}qa.aws.gartner.com
           - name: workload
@@ -98,7 +98,7 @@ spec:
           values: |-
             {{values}}
       destination:
-        namespace: {{namespace}}
+        namespace: '{{namespace}}'
         name: eks-${{ values.labels.businessUnit }}qa-us-east-1
       # Sync policy
       syncPolicy:
