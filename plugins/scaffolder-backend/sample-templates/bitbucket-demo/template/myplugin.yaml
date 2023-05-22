@@ -52,7 +52,7 @@ spec:
               ui:autofocus: true
               ui:help: Example avatars, jedi etc.
             bitbucketProjectKey:
-              title: Bitbucket Project Key
+              title: Application Bitbucket Project Key
               type: string
               pattern: '^[A-Za-z]+[0-9]*([-_][A-Za-z0-9]+)*$'
               minLength: 1
@@ -327,17 +327,17 @@ spec:
               description: Service readiness probe path.
               ui:autofocus: true
     - title: Choose integrations to be enabled for the service
-      properties:
-        integrations:
-          type: object
-          title: Integrations
-          properties:
-            enableConfigServer:
-              title: Spring Cloud Config Server
-              type: boolean
-              default: false
-              description: Set if want to integrate config server with your service.
-              ui:autofocus: true
+    #   properties:
+    #     integrations:
+    #       type: object
+    #       title: Integrations
+    #       properties:
+    #         enableConfigServer:
+    #           title: Spring Cloud Config Server
+    #           type: boolean
+    #           default: false
+    #           description: Set if want to integrate config server with your service.
+    #           ui:autofocus: true
     - title: Fill in the pull request details
       properties:
         pr:
@@ -348,7 +348,6 @@ spec:
             - description
             - sourceBranch
             - targetBranch
-            - reviewers
           properties:
             title:
               title: Pull Request Title
@@ -375,16 +374,15 @@ spec:
               description: Bitbucket target branch to which we want to create PR against.
               ui:autofocus: true
             reviewers:
-              title: Pull Request Reviewers
+              title: Pull Request Additional Reviewers(Apart From Default Reviewers)
               type: array
-              minLength: 1
               ui:options:
                 addable: true
                 orderable: true
                 removable: false
               items:
                 type: string
-              description: Bitbucket target branch to which we want to create PR against.
+              description: Bitbucket users(ad username) who will be added to the pull request as additional reviewers.
               uniqueItems: true
               ui:autofocus: true
 
@@ -392,7 +390,7 @@ spec:
   steps:
     - id: publish-create-repo
       name: Create Repository
-      action: publish:bitbucketServer:repo:create
+      action: bitbucketServer:repo:create
       input:
         repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=argo${{ parameters.labels.businessUnit }}
         defaultBranch: master
@@ -400,7 +398,7 @@ spec:
 
     - id: publish-create-clone
       name: Clone Repository
-      action: publish:bitbucketServer:repo:clone
+      action: bitbucketServer:repo:clone
       input:
         repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=argo${{ parameters.labels.businessUnit }}
         baseBranch: master
@@ -451,7 +449,7 @@ spec:
     #     repoVisibility: private
     - id: publish-changes
       name: Push Changes To Repository
-      action: publish:bitbucketServer:push
+      action: bitbucketServer:branch:push
       input:
         repoUrl: git.gartner.com?repo=${{ parameters.service.team }}&project=argo${{ parameters.labels.businessUnit }}
         branch: ${{ parameters.pr.sourceBranch }}
@@ -461,7 +459,7 @@ spec:
 
     - id: publish-pr
       name: Create PR out of changes
-      action: publish:bitbucketServer:pullRequest
+      action: bitbucketServer:pullRequest:open
       input:
         title: ${{ parameters.pr.title }}
         description: ${{ parameters.pr.description }}

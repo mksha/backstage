@@ -21,7 +21,8 @@ import {
 } from '@backstage/integration';
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import fetch, { Response, RequestInit } from 'node-fetch';
-import { parseRepoUrl } from '../publish/util';
+import { parseRepoUrl, getRepoSourceDirectory } from '../publish/util';
+import { initRepoAndPush } from '../helpers';
 import { Config } from '@backstage/config';
 import { Logger } from 'winston';
 import { getRepoInfo } from './bitbucketServerUtil';
@@ -138,6 +139,10 @@ export function createBitbucketServerRepoCreateAction(options: {
     repoVisibility?: 'private' | 'public';
     enableLFS?: boolean;
     token?: string;
+    sourcePath?: string;
+    gitCommitMessage?: string;
+    gitAuthorName?: string;
+    gitAuthorEmail?: string;
   }>({
     id: 'bitbucketServer:repo:create',
     description: 'Create a git repository in the Bitbucket Server.',
@@ -201,6 +206,9 @@ export function createBitbucketServerRepoCreateAction(options: {
         description,
         defaultBranch = 'master',
         repoVisibility = 'private',
+        gitCommitMessage = 'initial commit',
+        gitAuthorName,
+        gitAuthorEmail,
         enableLFS = false,
       } = ctx.input;
 
@@ -244,6 +252,36 @@ export function createBitbucketServerRepoCreateAction(options: {
         description,
         apiBaseUrl,
         logger: ctx.logger,
+      });
+
+      const auth = authConfig.token
+        ? {
+            token: token!,
+          }
+        : {
+            username: authConfig.username!,
+            password: authConfig.password!,
+          };
+
+      const gitAuthorInfo = {
+        name: gitAuthorName
+          ? gitAuthorName
+          : config.getOptionalString('scaffolder.defaultAuthor.name'),
+        email: gitAuthorEmail
+          ? gitAuthorEmail
+          : config.getOptionalString('scaffolder.defaultAuthor.email'),
+      };
+
+      const commitResult = await initRepoAndPush({
+        dir: getRepoSourceDirectory(ctx.workspacePath, ctx.input.sourcePath),
+        remoteUrl,
+        auth,
+        defaultBranch,
+        logger: ctx.logger,
+        commitMessage: gitCommitMessage
+          ? gitCommitMessage
+          : config.getOptionalString('scaffolder.defaultCommitMessage'),
+        gitAuthorInfo,
       });
 
       if (enableLFS) {

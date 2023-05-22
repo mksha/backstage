@@ -74,7 +74,7 @@ const createPullRequest = async (opts: {
     description,
     sourceBranch,
     targetBranch,
-    reviewers,
+    reviewers = [],
     authorization,
     apiBaseUrl,
     logger,
@@ -276,7 +276,7 @@ export function createBitbucketServerPullRequestOpenAction(options: {
         description,
         sourceBranch,
         targetBranch,
-        reviewers,
+        reviewers = [],
       } = ctx.input;
 
       const { project, repo, host } = parseRepoUrl(repoUrl, integrations);

@@ -58,10 +58,6 @@ import {
   createPublishBitbucketAction,
   createPublishBitbucketCloudAction,
   createPublishBitbucketServerAction,
-  createPublishBitbucketServerRepoCreateAction,
-  createPublishBitbucketServerRepoCloneAction,
-  createPublishBitbucketServerPushAction,
-  createPublishBitbucketServerPullRequestAction,
   createPublishGerritAction,
   createPublishGerritReviewAction,
   createPublishGithubAction,
@@ -169,22 +165,6 @@ export const createBuiltinActions = (
       config,
     }),
     createPublishBitbucketServerAction({
-      integrations,
-      config,
-    }),
-    createPublishBitbucketServerRepoCreateAction({
-      integrations,
-      config,
-    }),
-    createPublishBitbucketServerRepoCloneAction({
-      integrations,
-      config,
-    }),
-    createPublishBitbucketServerPushAction({
-      integrations,
-      config,
-    }),
-    createPublishBitbucketServerPullRequestAction({
       integrations,
       config,
     }),
