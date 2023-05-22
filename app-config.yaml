@@ -284,10 +284,10 @@ catalog:
       target: ../../plugins/scaffolder-backend/sample-templates/all-templates.yaml
       rules:
         - allow: [Template]
-    - type: file
-      target: ../../plugins/scaffolder-backend/sample-templates/bitbucket-demo/template/myplugin.yaml
-      rules:
-        - allow: [Template]
+    # - type: file
+    #   target: ../../plugins/scaffolder-backend/sample-templates/bitbucket-demo/template/myplugin.yaml
+    #   rules:
+    #     - allow: [Template]
     # Backstage end-to-end tests of TechDocs
     - type: file
       target: ../../cypress/e2e-fixture.catalog.info.yaml
