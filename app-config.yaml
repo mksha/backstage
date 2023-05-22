@@ -46,7 +46,7 @@ backend:
   reading:
     allow:
       - host: example.com
-      - host: '*.example.com'
+      - host: '*.mozilla.org'
   # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
 
 # See README.md in the proxy-backend plugin for information on the configuration format
@@ -223,7 +223,6 @@ catalog:
         - Component
         - API
         - Resource
-        - Template
         - System
         - Domain
         - Location
@@ -289,8 +288,6 @@ scaffolder:
   #   email: scaffolder@backstage.io
   # Use to customize the default commit message when new components are created
   # defaultCommitMessage: 'Initial commit'
-  bitbucketServer:
-    visibility: 'private'
 
 auth:
   ### Add auth.keyStore.provider to more granularly control how to store JWK data when running
